@@ -1,0 +1,6 @@
+[submodule "deps/imtui"]
+	path = deps/imtui
+	url = https://github.com/ggerganov/imtui.git
+[submodule "deps/json"]
+	path = deps/json
+	url = https://github.com/nlohmann/json
