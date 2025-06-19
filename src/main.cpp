@@ -15,6 +15,7 @@
 #include "api_client.hpp"
 #include "log_window.hpp"
 #include "log.hpp"
+#include "step_ca_init_window.hpp"
 
 using json = nlohmann::json;
 
@@ -41,14 +42,14 @@ int main()
     auto hostService = std::make_unique<HostService>(*api);
     auto hostsWindow = std::make_unique<HostsWindow>(*hostService);
 
+    auto stepCaInitWindow = std::make_unique<StepCaInitWindow>();
+
     auto logWindow = std::make_unique<LogWindow>();
 
     auto tuiBackend = std::make_unique<TuiBackend>(true);
 
-    bool demo = true;
-    int nframes = 0;
-    float fval = 1.23f;
     bool showHostsNodesWindow = false;
+    bool showStepCaInitWindow = false;
     bool showLogWindow = false;
 
     while (true)
@@ -72,6 +73,10 @@ int main()
                 {
                     showHostsNodesWindow = true;
                 }
+                if (ImGui::MenuItem("Step CA Init"))
+                {
+                    showStepCaInitWindow = true;
+                }
                 if (ImGui::MenuItem("Logs"))
                 {
                     showLogWindow = true;
@@ -89,6 +94,11 @@ int main()
         if (showLogWindow)
         {
             logWindow->draw(&showLogWindow);
+        }
+
+        if (showStepCaInitWindow)
+        {
+            stepCaInitWindow->draw(&showStepCaInitWindow);
         }
 
         tuiBackend->present();
