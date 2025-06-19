@@ -21,8 +21,8 @@ namespace ledgr
     }
     inline void from_json(const nlohmann::json &j, HostDescriptor &h)
     {
-        j.at("id").get_to(h.id);
-        j.at("name").get_to(h.name);
-        j.at("host").get_to(h.host);
+        h.id = j.value("id", "");
+        h.name = j.value("name", "");
+        h.host = j.value("host", "");
     }
 }

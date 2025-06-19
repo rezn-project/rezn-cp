@@ -90,14 +90,24 @@ int main()
 
         if (ImGui::BeginPopupModal("AddHostPopup"))
         {
+            ImGui::InputText("ID", &newHost.id);
             ImGui::InputText("Name", &newHost.name);
             ImGui::InputText("Host", &newHost.host);
 
             if (ImGui::Button("Add"))
             {
-                hosts.push_back(newHost);
-                newHost = {};
-                ImGui::CloseCurrentPopup();
+                std::string error;
+
+                if (api->add_host(newHost, &error))
+                {
+                    hosts.push_back(newHost);
+                    newHost = {};
+                    ImGui::CloseCurrentPopup();
+                }
+                else
+                {
+                    // Consider showing error to user
+                }
             }
             ImGui::SameLine();
             if (ImGui::Button("Cancel"))
