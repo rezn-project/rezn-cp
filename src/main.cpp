@@ -10,6 +10,8 @@
 
 #include "tui_backend.hpp"
 #include "host_descriptor.hpp"
+#include "host_service.hpp"
+#include "hosts_window.hpp"
 #include "api_client.hpp"
 
 using json = nlohmann::json;
@@ -34,23 +36,15 @@ int main()
 
     std::cout << "Connected to daemon at " << sock_path << std::endl;
 
-    std::vector<ledgr::HostDescriptor> hosts;
-    try
-    {
-        hosts = api->list_hosts();
-    }
-    catch (const std::exception &ex)
-    {
-        std::cerr << "Failed to fetch hosts: " << ex.what() << std::endl;
-        return 1;
-    }
+    auto hostService = std::make_unique<HostService>(*api);
+    auto hostsWindow = std::make_unique<HostsWindow>(*hostService);
 
     auto tuiBackend = std::make_unique<TuiBackend>(true);
 
     bool demo = true;
     int nframes = 0;
     float fval = 1.23f;
-    bool showHostsNodesWindow = true;
+    bool showHostsNodesWindow = false;
 
     while (true)
     {
@@ -98,68 +92,7 @@ int main()
 
         if (showHostsNodesWindow)
         {
-            ImGui::SetNextWindowPos(ImVec2(0, 1), ImGuiCond_Once);
-            ImGui::SetNextWindowSize(ImVec2(150.0, 20.0), ImGuiCond_Once);
-
-            if (ImGui::Begin("Hosts / Nodes", &showHostsNodesWindow, ImGuiWindowFlags_NoCollapse))
-            {
-
-                if (ImGui::BeginTable("HostLedger", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
-                {
-                    ImGui::TableSetupColumn("Name");
-                    ImGui::TableSetupColumn("Host");
-                    ImGui::TableHeadersRow();
-
-                    for (const auto &host : hosts)
-                    {
-                        ImGui::TableNextRow();
-                        ImGui::TableSetColumnIndex(0);
-                        ImGui::TextUnformatted(host.name.c_str());
-                        ImGui::TableSetColumnIndex(1);
-                        ImGui::TextUnformatted(host.host.c_str());
-                    }
-
-                    ImGui::EndTable();
-                }
-
-                if (ImGui::Button("Add Host"))
-                {
-                    ImGui::OpenPopup("AddHostPopup");
-                }
-
-                if (ImGui::BeginPopupModal("AddHostPopup"))
-                {
-                    ImGui::InputText("ID", &newHost.id);
-                    ImGui::InputText("Name", &newHost.name);
-                    ImGui::InputText("Host", &newHost.host);
-
-                    if (ImGui::Button("Add"))
-                    {
-                        std::string error;
-
-                        if (api->add_host(newHost, &error))
-                        {
-                            hosts.push_back(newHost);
-                            newHost = {};
-                            ImGui::CloseCurrentPopup();
-                        }
-                        else
-                        {
-                            // Consider showing error to user
-                        }
-                    }
-                    ImGui::SameLine();
-                    if (ImGui::Button("Cancel"))
-                    {
-                        newHost = {};
-                        ImGui::CloseCurrentPopup();
-                    }
-
-                    ImGui::EndPopup();
-                }
-            }
-
-            ImGui::End();
+            hostsWindow->draw(&showHostsNodesWindow);
         }
 
         tuiBackend->present();
