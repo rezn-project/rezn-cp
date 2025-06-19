@@ -8,8 +8,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include "tui_backend.hpp"
 #include "host_descriptor.hpp"
-#include <api_client.hpp>
+#include "api_client.hpp"
 
 using json = nlohmann::json;
 
@@ -44,11 +45,7 @@ int main()
         return 1;
     }
 
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-
-    auto screen = ImTui_ImplNcurses_Init(true);
-    ImTui_ImplText_Init();
+    auto tuiBackend = std::make_unique<TuiBackend>(true);
 
     bool demo = true;
     int nframes = 0;
@@ -57,10 +54,7 @@ int main()
 
     while (true)
     {
-        ImTui_ImplNcurses_NewFrame();
-        ImTui_ImplText_NewFrame();
-
-        ImGui::NewFrame();
+        tuiBackend->new_frame();
 
         if (ImGui::BeginMainMenuBar())
         {
@@ -168,16 +162,8 @@ int main()
             ImGui::End();
         }
 
-        ImGui::Render();
-
-        ImTui_ImplText_RenderDrawData(ImGui::GetDrawData(), screen);
-        ImTui_ImplNcurses_DrawScreen();
+        tuiBackend->present();
     }
-
-    ImTui_ImplText_Shutdown();
-    ImTui_ImplNcurses_Shutdown();
-
-    ImGui::DestroyContext();
 
     return 0;
 }

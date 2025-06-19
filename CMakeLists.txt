@@ -22,7 +22,8 @@ set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(PROJECT_SOURCES
     ${SRC_DIR}/client.cpp
     ${SRC_DIR}/api_client.cpp
-    ${SRC_DIR}/ledger.cpp
+    ${SRC_DIR}/tui_backend.cpp
+    ${SRC_DIR}/main.cpp
 
     # --- ImGui ---------------------------------------------------------
     ${DEPS_DIR}/imtui/third-party/imgui/imgui/imgui.cpp

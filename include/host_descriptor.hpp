@@ -1,4 +1,6 @@
-#pragma once
+#ifndef CP_LEDGR_HOST_DESCRIPTOR_HPP
+#define CP_LEDGR_HOST_DESCRIPTOR_HPP
+
 #include <string>
 #include <nlohmann/json.hpp>
 
@@ -26,3 +28,5 @@ namespace ledgr
         h.host = j.value("host", "");
     }
 }
+
+#endif
