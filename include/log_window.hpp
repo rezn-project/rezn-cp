@@ -14,6 +14,7 @@ public:
         if (!open || !*open)
             return;
 
+        ImGui::SetNextWindowPos({0, 1}, ImGuiCond_Once);
         ImGui::SetNextWindowSize({120, 30}, ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("Logs", open))
         {

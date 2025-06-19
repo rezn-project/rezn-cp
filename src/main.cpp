@@ -14,6 +14,7 @@
 #include "hosts_window.hpp"
 #include "api_client.hpp"
 #include "log_window.hpp"
+#include "log.hpp"
 
 using json = nlohmann::json;
 
@@ -35,7 +36,7 @@ int main()
         return 1;
     }
 
-    std::cout << "Connected to daemon at " << sock_path << std::endl;
+    LOG_INFO("Connected to daemon at {}", sock_path);
 
     auto hostService = std::make_unique<HostService>(*api);
     auto hostsWindow = std::make_unique<HostsWindow>(*hostService);
@@ -64,26 +65,6 @@ int main()
                 }
                 ImGui::EndMenu();
             }
-            if (ImGui::BeginMenu("Edit"))
-            {
-                if (ImGui::MenuItem("Undo", "CTRL+Z"))
-                {
-                }
-                if (ImGui::MenuItem("Redo", "CTRL+Y", false, false))
-                {
-                } // Disabled item
-                ImGui::Separator();
-                if (ImGui::MenuItem("Cut", "CTRL+X"))
-                {
-                }
-                if (ImGui::MenuItem("Copy", "CTRL+C"))
-                {
-                }
-                if (ImGui::MenuItem("Paste", "CTRL+V"))
-                {
-                }
-                ImGui::EndMenu();
-            }
 
             if (ImGui::BeginMenu("Windows"))
             {
@@ -97,25 +78,6 @@ int main()
                 }
                 ImGui::EndMenu();
             }
-            {
-                if (ImGui::MenuItem("Undo", "CTRL+Z"))
-                {
-                }
-                if (ImGui::MenuItem("Redo", "CTRL+Y", false, false))
-                {
-                } // Disabled item
-                ImGui::Separator();
-                if (ImGui::MenuItem("Cut", "CTRL+X"))
-                {
-                }
-                if (ImGui::MenuItem("Copy", "CTRL+C"))
-                {
-                }
-                if (ImGui::MenuItem("Paste", "CTRL+V"))
-                {
-                }
-                ImGui::EndMenu();
-            }
             ImGui::EndMainMenuBar();
         }
 
@@ -126,7 +88,7 @@ int main()
 
         if (showLogWindow)
         {
-            hostsWindow->draw(&showLogWindow);
+            logWindow->draw(&showLogWindow);
         }
 
         tuiBackend->present();
