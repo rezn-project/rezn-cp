@@ -45,6 +45,22 @@ find_package(Curses REQUIRED)
 find_package(CURL   REQUIRED)
 find_package(Threads REQUIRED)
 
+set(BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(BUILD_BENCH OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(BUILD_DATA OFF CACHE BOOL "" FORCE)
+set(LIBPASSGEN_STATIC ON CACHE BOOL "" FORCE)
+set(LIBPASSGEN_SHARED OFF CACHE BOOL "" FORCE)
+set(PASSGEN_STATIC ON CACHE BOOL "" FORCE)
+
+list(APPEND CMAKE_MODULE_PATH "${DEPS_DIR}/passgen/cmake")
+add_subdirectory(${DEPS_DIR}/passgen)
+
+configure_file(
+    ${DEPS_DIR}/passgen/include/passgen/config.h.in
+    ${DEPS_DIR}/passgen/include/passgen/config.h
+)
+
 # ----------------------------------------------------------------------
 # Target
 # ----------------------------------------------------------------------
@@ -58,6 +74,7 @@ target_include_directories(rezn-cp PRIVATE
     ${DEPS_DIR}/imtui/include
     ${DEPS_DIR}/imtui/third-party/imgui
     ${DEPS_DIR}/imtui/third-party/imgui/imgui
+    ${DEPS_DIR}/imtui/third-party/imgui/imgui/misc/cpp
 )
 
 target_link_libraries(rezn-cp
@@ -65,4 +82,6 @@ target_link_libraries(rezn-cp
     ${CURSES_LIBRARIES}
     Threads::Threads
     CURL::libcurl
+    passgen-static
 )
+
