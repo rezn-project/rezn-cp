@@ -29,7 +29,7 @@ static void secure_overwrite_and_remove(const fs::path &p)
     auto sz = fs::file_size(p, ec);
     if (!ec && sz > 0)
     {
-        std::ofstream f(p, std::ios::binary | std::ios::in);
+        std::ofstream f(p, std::ios::binary | std::ios::out);
         std::vector<char> zeros(4096, '\0');
         size_t remaining = sz;
         while (remaining)
@@ -38,6 +38,10 @@ static void secure_overwrite_and_remove(const fs::path &p)
             f.write(zeros.data(), n);
             remaining -= n;
         }
+
+        f.flush();
+        f.close();
+        sync();
     }
     fs::remove(p, ec);
 }
