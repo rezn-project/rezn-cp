@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(rezn-ledger LANGUAGES C CXX)
+project(rezn-cp LANGUAGES C CXX)
 
 # ----------------------------------------------------------------------
 # Toolchain / language settings
@@ -48,9 +48,9 @@ find_package(Threads REQUIRED)
 # ----------------------------------------------------------------------
 # Target
 # ----------------------------------------------------------------------
-add_executable(rezn-ledger ${PROJECT_SOURCES})
+add_executable(rezn-cp ${PROJECT_SOURCES})
 
-target_include_directories(rezn-ledger PRIVATE
+target_include_directories(rezn-cp PRIVATE
     ${INCLUDE_DIR}
     ${CURSES_INCLUDE_DIR}
     ${DEPS_DIR}
@@ -60,7 +60,7 @@ target_include_directories(rezn-ledger PRIVATE
     ${DEPS_DIR}/imtui/third-party/imgui/imgui
 )
 
-target_link_libraries(rezn-ledger
+target_link_libraries(rezn-cp
     PRIVATE
     ${CURSES_LIBRARIES}
     Threads::Threads
