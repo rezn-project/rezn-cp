@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CP_HOST_SERVICE_HPP
+#define CP_HOST_SERVICE_HPP
 
 #include <vector>
 #include <shared_mutex>
@@ -74,3 +75,5 @@ private:
     std::vector<ledgr::HostDescriptor> cache_;
     mutable std::shared_mutex mtx_;
 };
+
+#endif

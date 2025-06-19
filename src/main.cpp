@@ -13,6 +13,7 @@
 #include "host_service.hpp"
 #include "hosts_window.hpp"
 #include "api_client.hpp"
+#include "log_window.hpp"
 
 using json = nlohmann::json;
 
@@ -39,12 +40,15 @@ int main()
     auto hostService = std::make_unique<HostService>(*api);
     auto hostsWindow = std::make_unique<HostsWindow>(*hostService);
 
+    auto logWindow = std::make_unique<LogWindow>();
+
     auto tuiBackend = std::make_unique<TuiBackend>(true);
 
     bool demo = true;
     int nframes = 0;
     float fval = 1.23f;
     bool showHostsNodesWindow = false;
+    bool showLogWindow = false;
 
     while (true)
     {
@@ -54,13 +58,6 @@ int main()
         {
             if (ImGui::BeginMenu("File"))
             {
-                if (ImGui::MenuItem("Open...", "CTRL+O"))
-                {
-                }
-                if (ImGui::MenuItem("Open Hosts / Nodes manager", "CTRL+O"))
-                {
-                    showHostsNodesWindow = true;
-                }
                 if (ImGui::MenuItem("Quit", "CTRL+Q"))
                 {
                     break;
@@ -87,12 +84,49 @@ int main()
                 }
                 ImGui::EndMenu();
             }
+
+            if (ImGui::BeginMenu("Windows"))
+            {
+                if (ImGui::MenuItem("Hosts / Nodes"))
+                {
+                    showHostsNodesWindow = true;
+                }
+                if (ImGui::MenuItem("Logs"))
+                {
+                    showLogWindow = true;
+                }
+                ImGui::EndMenu();
+            }
+            {
+                if (ImGui::MenuItem("Undo", "CTRL+Z"))
+                {
+                }
+                if (ImGui::MenuItem("Redo", "CTRL+Y", false, false))
+                {
+                } // Disabled item
+                ImGui::Separator();
+                if (ImGui::MenuItem("Cut", "CTRL+X"))
+                {
+                }
+                if (ImGui::MenuItem("Copy", "CTRL+C"))
+                {
+                }
+                if (ImGui::MenuItem("Paste", "CTRL+V"))
+                {
+                }
+                ImGui::EndMenu();
+            }
             ImGui::EndMainMenuBar();
         }
 
         if (showHostsNodesWindow)
         {
             hostsWindow->draw(&showHostsNodesWindow);
+        }
+
+        if (showLogWindow)
+        {
+            hostsWindow->draw(&showLogWindow);
         }
 
         tuiBackend->present();

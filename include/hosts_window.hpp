@@ -1,6 +1,5 @@
-// hosts_window.hpp – TUI widget for listing / adding hosts
-// -----------------------------------------------------------------------------
-#pragma once
+#ifndef CP_HOSTS_WINDOW_HPP
+#define CP_HOSTS_WINDOW_HPP
 
 // Dear ImGui
 #include <imgui.h>
@@ -173,3 +172,5 @@ private:
     char filterBuf_[64]{};     //!< small fixed buffer is fine here
     std::string errorMessage_; //!< last add‑host error (if any)
 };
+
+#endif
