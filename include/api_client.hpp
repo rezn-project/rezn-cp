@@ -1,4 +1,6 @@
-#pragma once
+#ifndef CP_LEDGR_API_CLIENT_HPP
+#define CP_LEDGR_API_CLIENT_HPP
+
 #include <vector>
 #include "host_descriptor.hpp"
 #include "client.hpp"
@@ -15,3 +17,5 @@ public:
 private:
     LedgerClient client;
 };
+
+#endif

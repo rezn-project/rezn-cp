@@ -1,4 +1,6 @@
-#pragma once
+#ifndef CP_LEDGR_CLIENT_HPP
+#define CP_LEDGR_CLIENT_HPP
+
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
@@ -32,3 +34,5 @@ private:
     static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata);
     void apply_invariants();
 };
+
+#endif

@@ -1,3 +1,6 @@
+#ifndef CP_LEDGR_CLIENT_CPP
+#define CP_LEDGR_CLIENT_CPP
+
 #include "client.hpp"
 #include <sstream>
 
@@ -105,3 +108,5 @@ nlohmann::json LedgerClient::send_request(const nlohmann::json &req)
                                  " - raw: " + resp_body);
     }
 }
+
+#endif

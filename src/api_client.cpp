@@ -1,3 +1,6 @@
+#ifndef CP_LEDGR_API_CLIENT_CPP
+#define CP_LEDGR_API_CLIENT_CPP
+
 #include "api_client.hpp"
 
 LedgerApiClient::LedgerApiClient(const std::string &socket_path)
@@ -32,3 +35,5 @@ bool LedgerApiClient::add_host(const ledgr::HostDescriptor &host, std::string *e
     }
     return false;
 }
+
+#endif
