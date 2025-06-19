@@ -13,6 +13,7 @@ public:
     void present() const;
 
 private:
+    // regular pointer to aviod double free()'ing
     ImTui::TScreen *screen_{};
 };
 
