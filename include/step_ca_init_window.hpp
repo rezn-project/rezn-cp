@@ -6,7 +6,7 @@
 #include <imgui_stdlib.h>
 #include <string>
 
-#include "passgen.hpp"
+#include "passgen_ctx.hpp"
 
 class StepCaInitWindow
 {
@@ -38,24 +38,25 @@ public:
                          ImGuiInputTextFlags_Password);
         ImGui::SameLine();
         if (ImGui::Button("Generate##ca"))
-            caPass = make_password();
+            caPass = pg.generate(20);
 
         ImGui::InputText("Provisioner password", &provPass,
                          ImGuiInputTextFlags_Password);
         ImGui::SameLine();
         if (ImGui::Button("Generate##prov"))
-            provPass = make_password();
+            provPass = pg.generate(20);
 
         ImGui::End();
     }
 
 private:
+    PassGenCtx pg;
     std::string caName = "rezn-seedr";
     std::string dnsName = "localhost";
     std::string addr = "127.0.0.1:9000";
     std::string provName = "admin";
-    std::string caPass = "";
-    std::string provPass = "";
+    std::string caPass;
+    std::string provPass;
     bool addAcme = false;
     bool enableSsh = true;
     bool noDb = false;
