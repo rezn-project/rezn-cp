@@ -119,13 +119,11 @@ int main()
             ImGui::EndPopup();
         }
 
-#ifndef __EMSCRIPTEN__
         ImGui::Text("%s", "");
         if (ImGui::Button("Exit program", {ImGui::GetContentRegionAvail().x, 2}))
         {
             break;
         }
-#endif
 
         ImGui::End();
 
