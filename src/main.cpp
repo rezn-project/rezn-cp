@@ -8,7 +8,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "tui_backend.cpp"
+#include "tui_backend.hpp"
 #include "host_descriptor.hpp"
 #include "api_client.hpp"
 

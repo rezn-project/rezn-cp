@@ -1,43 +1,32 @@
-#ifndef CP_TUI_BACKEND_CPP
-#define CP_TUI_BACKEND_CPP
-
-#include "imtui/imtui.h"
+#include "tui_backend.hpp"
 #include "imgui/misc/cpp/imgui_stdlib.h"
 #include "imtui/imtui-impl-ncurses.h"
 
-class TuiBackend
+TuiBackend::TuiBackend(bool mouse)
 {
-public:
-    explicit TuiBackend(bool mouse = true)
-    {
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        screen_ = ImTui_ImplNcurses_Init(mouse);
-        ImTui_ImplText_Init();
-    }
-    ~TuiBackend()
-    {
-        ImTui_ImplText_Shutdown();
-        ImTui_ImplNcurses_Shutdown();
-        ImGui::DestroyContext();
-    }
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    screen_ = ImTui_ImplNcurses_Init(mouse);
+    ImTui_ImplText_Init();
+}
 
-    void new_frame() const
-    {
-        ImTui_ImplNcurses_NewFrame();
-        ImTui_ImplText_NewFrame();
-        ImGui::NewFrame();
-    }
+TuiBackend::~TuiBackend()
+{
+    ImTui_ImplText_Shutdown();
+    ImTui_ImplNcurses_Shutdown();
+    ImGui::DestroyContext();
+}
 
-    void present() const
-    {
-        ImGui::Render();
-        ImTui_ImplText_RenderDrawData(ImGui::GetDrawData(), screen_);
-        ImTui_ImplNcurses_DrawScreen();
-    }
+void TuiBackend::new_frame() const
+{
+    ImTui_ImplNcurses_NewFrame();
+    ImTui_ImplText_NewFrame();
+    ImGui::NewFrame();
+}
 
-private:
-    ImTui::TScreen *screen_{};
-};
-
-#endif
+void TuiBackend::present() const
+{
+    ImGui::Render();
+    ImTui_ImplText_RenderDrawData(ImGui::GetDrawData(), screen_);
+    ImTui_ImplNcurses_DrawScreen();
+}
