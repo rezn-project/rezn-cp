@@ -53,6 +53,7 @@ int main()
     bool demo = true;
     int nframes = 0;
     float fval = 1.23f;
+    bool showHostsNodesWindow = true;
 
     while (true)
     {
@@ -61,71 +62,111 @@ int main()
 
         ImGui::NewFrame();
 
-        ImGui::SetNextWindowPos(ImVec2(4, 27), ImGuiCond_Once);
-        ImGui::SetNextWindowSize(ImVec2(50.0, 10.0), ImGuiCond_Once);
-        ImGui::Begin("Hello, world!");
-
-        if (ImGui::BeginTable("HostLedger", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
+        if (ImGui::BeginMainMenuBar())
         {
-            ImGui::TableSetupColumn("Name");
-            ImGui::TableSetupColumn("Host");
-            ImGui::TableHeadersRow();
-
-            for (const auto &host : hosts)
+            if (ImGui::BeginMenu("File"))
             {
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex(0);
-                ImGui::TextUnformatted(host.name.c_str());
-                ImGui::TableSetColumnIndex(1);
-                ImGui::TextUnformatted(host.host.c_str());
-            }
-
-            ImGui::EndTable();
-        }
-
-        if (ImGui::Button("Add Host"))
-        {
-            ImGui::OpenPopup("AddHostPopup");
-        }
-
-        if (ImGui::BeginPopupModal("AddHostPopup"))
-        {
-            ImGui::InputText("ID", &newHost.id);
-            ImGui::InputText("Name", &newHost.name);
-            ImGui::InputText("Host", &newHost.host);
-
-            if (ImGui::Button("Add"))
-            {
-                std::string error;
-
-                if (api->add_host(newHost, &error))
+                if (ImGui::MenuItem("Open...", "CTRL+O"))
                 {
-                    hosts.push_back(newHost);
-                    newHost = {};
-                    ImGui::CloseCurrentPopup();
                 }
-                else
+                if (ImGui::MenuItem("Open Hosts / Nodes manager", "CTRL+O"))
                 {
-                    // Consider showing error to user
+                    showHostsNodesWindow = true;
+                }
+                if (ImGui::MenuItem("Quit", "CTRL+Q"))
+                {
+                    break;
+                }
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("Edit"))
+            {
+                if (ImGui::MenuItem("Undo", "CTRL+Z"))
+                {
+                }
+                if (ImGui::MenuItem("Redo", "CTRL+Y", false, false))
+                {
+                } // Disabled item
+                ImGui::Separator();
+                if (ImGui::MenuItem("Cut", "CTRL+X"))
+                {
+                }
+                if (ImGui::MenuItem("Copy", "CTRL+C"))
+                {
+                }
+                if (ImGui::MenuItem("Paste", "CTRL+V"))
+                {
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMainMenuBar();
+        }
+
+        if (showHostsNodesWindow)
+        {
+            ImGui::SetNextWindowPos(ImVec2(0, 1), ImGuiCond_Once);
+            ImGui::SetNextWindowSize(ImVec2(150.0, 20.0), ImGuiCond_Once);
+
+            if (ImGui::Begin("Hosts / Nodes", &showHostsNodesWindow, ImGuiWindowFlags_NoCollapse))
+            {
+
+                if (ImGui::BeginTable("HostLedger", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
+                {
+                    ImGui::TableSetupColumn("Name");
+                    ImGui::TableSetupColumn("Host");
+                    ImGui::TableHeadersRow();
+
+                    for (const auto &host : hosts)
+                    {
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted(host.name.c_str());
+                        ImGui::TableSetColumnIndex(1);
+                        ImGui::TextUnformatted(host.host.c_str());
+                    }
+
+                    ImGui::EndTable();
+                }
+
+                if (ImGui::Button("Add Host"))
+                {
+                    ImGui::OpenPopup("AddHostPopup");
+                }
+
+                if (ImGui::BeginPopupModal("AddHostPopup"))
+                {
+                    ImGui::InputText("ID", &newHost.id);
+                    ImGui::InputText("Name", &newHost.name);
+                    ImGui::InputText("Host", &newHost.host);
+
+                    if (ImGui::Button("Add"))
+                    {
+                        std::string error;
+
+                        if (api->add_host(newHost, &error))
+                        {
+                            hosts.push_back(newHost);
+                            newHost = {};
+                            ImGui::CloseCurrentPopup();
+                        }
+                        else
+                        {
+                            // Consider showing error to user
+                        }
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Cancel"))
+                    {
+                        newHost = {};
+                        ImGui::CloseCurrentPopup();
+                    }
+
+                    ImGui::EndPopup();
                 }
             }
-            ImGui::SameLine();
-            if (ImGui::Button("Cancel"))
-            {
-                newHost = {};
-                ImGui::CloseCurrentPopup();
-            }
 
-            ImGui::EndPopup();
+            ImGui::End();
         }
-
-        ImGui::Text("%s", "");
-        if (ImGui::Button("Exit program", {ImGui::GetContentRegionAvail().x, 2}))
-        {
-            break;
-        }
-
-        ImGui::End();
 
         ImGui::Render();
 
