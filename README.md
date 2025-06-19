@@ -18,3 +18,4 @@ It runs directly in your terminal with a ncurses-based GUI powered by [ImTui](ht
 
 https://github.com/user-attachments/assets/d684d065-9faa-4ec4-8da9-cc7ac0d2a1f6
 
+![Screenshot from 2025-06-19 22-40-11](https://github.com/user-attachments/assets/d226cad6-d890-4c51-a675-f319b0d24dfb)
