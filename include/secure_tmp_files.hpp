@@ -9,10 +9,31 @@
 
 namespace fs = std::filesystem;
 
+class SecureTempFile
+{
+    fs::path path_;
+
+public:
+    explicit SecureTempFile(fs::path p) : path_(std::move(p)) {}
+    ~SecureTempFile()
+    {
+        if (!path_.empty())
+        {
+            fs::remove(path_);
+        }
+    }
+    const fs::path &path() const { return path_; }
+    // Non-copyable, movable
+    SecureTempFile(const SecureTempFile &) = delete;
+    SecureTempFile &operator=(const SecureTempFile &) = delete;
+    SecureTempFile(SecureTempFile &&) = default;
+    SecureTempFile &operator=(SecureTempFile &&) = default;
+};
+
 // returns (fd, path); caller closes fd and removes path when done
 static std::pair<int, fs::path> secure_temp_file(const std::string &prefix = "prefix")
 {
-    fs::path tmpl = fs::temp_directory_path() / (prefix + "stepXXXXXX");
+    fs::path tmpl = fs::temp_directory_path() / (prefix + "XXXXXX");
     std::string s = tmpl.string();
     int fd = mkstemp(s.data()); // creates + opens O_RDWR
     if (fd == -1)
@@ -21,29 +42,4 @@ static std::pair<int, fs::path> secure_temp_file(const std::string &prefix = "pr
                     fs::perms::owner_read | fs::perms::owner_write,
                     fs::perm_options::replace);
     return {fd, fs::path{s}};
-}
-
-static void secure_overwrite_and_remove(const fs::path &p)
-{
-    std::error_code ec;
-    auto sz = fs::file_size(p, ec);
-    if (!ec && sz > 0)
-    {
-        int fd = ::open(p.c_str(), O_WRONLY);
-        if (fd != -1)
-        {
-            std::vector<char> zeros(4096, '\0');
-            size_t remaining = sz;
-            while (remaining)
-            {
-                size_t n = std::min(remaining, zeros.size());
-                if (::write(fd, zeros.data(), n) != static_cast<ssize_t>(n))
-                    break;
-                remaining -= n;
-            }
-            ::fsync(fd);
-            ::close(fd);
-        }
-    }
-    fs::remove(p, ec);
 }

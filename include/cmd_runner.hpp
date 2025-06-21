@@ -26,6 +26,12 @@ public:
     {
         CmdResult res;
 
+        if (argv.empty())
+        {
+            res.ec = std::make_error_code(std::errc::invalid_argument);
+            return res;
+        }
+
         reproc::process proc;
         res.ec = proc.start(argv);
         if (res.ec)

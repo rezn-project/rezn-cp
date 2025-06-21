@@ -5,6 +5,8 @@
 #include <string>
 #include <ranges>
 #include <string_view>
+#include <filesystem>
+#include <optional>
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
@@ -118,6 +120,9 @@ private:
             "--provisioner", provName,
             "--deployment-type", "standalone"};
 
+        std::optional<SecureTempFile> caPwFile;
+        std::optional<SecureTempFile> provPwFile;
+
         if (addAcme)
             args.emplace_back("--acme");
         if (enableSsh)
@@ -125,18 +130,40 @@ private:
         if (!caPass.empty())
         {
             auto [caPwFileD, path] = secure_temp_file("step");
-            ::write(caPwFileD, caPass.data(), caPass.size());
-            ::close(caPwFileD);
-            caPwFilePath = path;
+
+            if (::write(caPwFileD, caPass.data(), caPass.size()) != static_cast<ssize_t>(caPass.size()))
+            {
+                ::close(caPwFileD);
+                LOG_WARN("Failed to write CA password to temporary file");
+                return false;
+            }
+            if (::close(caPwFileD) != 0)
+            {
+                LOG_WARN("Failed to close CA password file descriptor");
+                return false;
+            }
+
+            caPwFile = SecureTempFile(path);
             args.emplace_back("--password-file");
             args.emplace_back(path);
         }
         if (!provPass.empty())
         {
             auto [provPwFileD, path] = secure_temp_file("step");
-            ::write(provPwFileD, provPass.data(), provPass.size());
-            ::close(provPwFileD);
-            provPwFilePath = path;
+
+            if (::write(provPwFileD, provPass.data(), provPass.size()) != static_cast<ssize_t>(provPass.size()))
+            {
+                ::close(provPwFileD);
+                LOG_WARN("Failed to write provisioning password to temporary file");
+                return false;
+            }
+            if (::close(provPwFileD) != 0)
+            {
+                LOG_WARN("Failed to close provisioning password file descriptor");
+                return false;
+            }
+
+            provPwFile = SecureTempFile(path);
             args.emplace_back("--provisioner-password-file");
             args.emplace_back(path);
         }
@@ -165,18 +192,6 @@ private:
             LOG_WARN("step exited {}", ret.exit_code);
 
             return false;
-        }
-
-        if (!caPwFilePath.empty())
-        {
-            secure_overwrite_and_remove(caPwFilePath);
-            caPwFilePath.clear();
-        }
-
-        if (!provPwFilePath.empty())
-        {
-            secure_overwrite_and_remove(provPwFilePath);
-            provPwFilePath.clear();
         }
 
         LOG_DEBUG("step ca init output:\n{}", ret.out);

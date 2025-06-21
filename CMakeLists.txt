@@ -88,5 +88,6 @@ target_link_libraries(rezn-cp
     Threads::Threads
     CURL::libcurl
     passgen-static
+    reproc++
 )
 
