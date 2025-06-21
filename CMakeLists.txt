@@ -61,6 +61,11 @@ configure_file(
     ${DEPS_DIR}/passgen/include/passgen/config.h
 )
 
+set(REPROC++ ON)
+set(REPROC_MULTITHREADED ON)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+add_subdirectory(${DEPS_DIR}/reproc)
+
 # ----------------------------------------------------------------------
 # Target
 # ----------------------------------------------------------------------
