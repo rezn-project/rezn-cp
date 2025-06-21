@@ -148,7 +148,7 @@ private:
 
         if (std::filesystem::exists(stepPath / "config" / "ca.json"))
         {
-            LOG_WARN("CA already initialized at {}", stepPath);
+            LOG_WARN("CA already initialized at {}", stepPath.string());
             lastStderr = "CA already initialized at " + stepPath.string();
             return false;
         }
