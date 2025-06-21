@@ -56,13 +56,6 @@ inline std::vector<std::string_view> split_sv(std::string_view sv,
     return out;
 }
 
-#ifdef _WIN32
-inline bool ci_equal(std::string_view a, std::string_view b) noexcept
-{
-    return _stricmp(a.data(), b.data()) == 0;
-}
-#endif
-
 // ──────────────────────────────── environment fetch (portable) ─────────────────────
 #ifdef _WIN32
 // Use WinAPI UTF‑16 env fetch → UTF‑8 string.
@@ -119,7 +112,17 @@ struct EnvCache
         // recompute
         dirs.clear();
         for (auto sv : split_sv(cur_path))
-            dirs.emplace_back(std::filesystem::weakly_canonical(std::filesystem::path{sv}));
+        {
+            try
+            {
+                dirs.emplace_back(std::filesystem::weakly_canonical(std::filesystem::path{sv}));
+            }
+            catch (const std::filesystem::filesystem_error &)
+            {
+                // Skip invalid paths
+                dirs.emplace_back(sv);
+            }
+        }
 #ifdef _WIN32
         exts.assign({""});
         for (auto sv : split_sv(cur_pext, ';'))
