@@ -17,6 +17,7 @@
 #include "log.hpp"
 #include "cmd_runner.hpp"
 #include "util_find_executable.hpp"
+#include "string_utils.hpp"
 
 using namespace std::string_view_literals;
 
@@ -144,7 +145,10 @@ private:
             return false;
         }
 
-        auto stepPath = fs::path(stepPathRet.out);
+        auto stepPath = fs::path(std::string(util::trim(stepPathRet.out)));
+
+        LOG_DEBUG("Step path: {}", stepPath.string());
+        LOG_DEBUG("Path to ca.json: {}", std::string(stepPath / "config" / "ca.json"));
 
         if (std::filesystem::exists(stepPath / "config" / "ca.json"))
         {
