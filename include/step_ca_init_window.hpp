@@ -2,11 +2,24 @@
 #define CP_STEP_CA_INIT_WINDOW_HPP
 
 #include <vector>
+#include <string>
+#include <ranges>
+#include <string_view>
+#include <filesystem>
+#include <optional>
+
 #include <imgui.h>
 #include <imgui_stdlib.h>
-#include <string>
+#include <reproc++/run.hpp>
 
 #include "passgen_ctx.hpp"
+#include "secure_tmp_files.hpp"
+#include "log.hpp"
+#include "cmd_runner.hpp"
+#include "util_find_executable.hpp"
+#include "string_utils.hpp"
+
+using namespace std::string_view_literals;
 
 class StepCaInitWindow
 {
@@ -46,6 +59,44 @@ public:
         if (ImGui::Button("Generate##prov"))
             provPass = pg.generate(20);
 
+        if (ImGui::Button("Run command"))
+        {
+            if (runCommand())
+            {
+                ImGui::OpenPopup("Success");
+            }
+            else
+            {
+                ImGui::OpenPopup("Error");
+            }
+        }
+        if (ImGui::BeginPopupModal("Success", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::Text("CA initialized successfully!");
+            if (!lastStdout.empty())
+            {
+                ImGui::Separator();
+                ImGui::TextUnformatted(lastStdout.c_str());
+            }
+
+            if (ImGui::Button("OK"))
+                ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
+        }
+        if (ImGui::BeginPopupModal("Error", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::Text("Failed to initialize CA. Check logs for details.");
+            if (!lastStderr.empty())
+            {
+                ImGui::Separator();
+                ImGui::TextUnformatted(lastStderr.c_str());
+            }
+
+            if (ImGui::Button("OK"))
+                ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
+        }
+
         ImGui::End();
     }
 
@@ -60,6 +111,146 @@ private:
     bool addAcme = false;
     bool enableSsh = true;
     bool noDb = false;
+
+    std::string lastStdout;
+    std::string lastStderr;
+
+    fs::path caPwFilePath;
+    fs::path provPwFilePath;
+
+    bool runCommand()
+    {
+        lastStdout.clear();
+        lastStderr.clear();
+
+        auto pathToStepCli = find_executable("step");
+
+        if (!pathToStepCli.has_value())
+        {
+            LOG_WARN("step executable not found");
+            lastStderr = "step executable not found";
+            return false;
+        }
+
+        std::vector<std::string> stepPathArgs{
+            pathToStepCli.value().string(),
+            "path"};
+
+        auto stepPathRet = CmdRunner::run(stepPathArgs);
+
+        if (stepPathRet.ec)
+        {
+            LOG_WARN("Failed to get step path: {}", stepPathRet.ec.message());
+            lastStderr = "Failed to get step path: " + stepPathRet.ec.message();
+            return false;
+        }
+
+        auto stepPath = fs::path(std::string(util::trim(stepPathRet.out)));
+
+        LOG_DEBUG("Step path: {}", stepPath.string());
+        LOG_DEBUG("Path to ca.json: {}", std::string(stepPath / "config" / "ca.json"));
+
+        if (std::filesystem::exists(stepPath / "config" / "ca.json"))
+        {
+            LOG_WARN("CA already initialized at {}", stepPath.string());
+            lastStderr = "CA already initialized at " + stepPath.string();
+            return false;
+        }
+
+        std::vector<std::string> stepCaInitArgs{
+            pathToStepCli.value().string(),
+            "ca", "init",
+            "--name", caName,
+            "--dns", dnsName,
+            "--address", addr,
+            "--provisioner", provName,
+            "--deployment-type", "standalone"};
+
+        std::optional<SecureTempFile> caPwFile;
+        std::optional<SecureTempFile> provPwFile;
+
+        if (addAcme)
+            stepCaInitArgs.emplace_back("--acme");
+        if (enableSsh)
+            stepCaInitArgs.emplace_back("--ssh");
+        if (!caPass.empty())
+        {
+            auto [caPwFileD, path] = secure_temp_file("step");
+
+            if (::write(caPwFileD, caPass.data(), caPass.size()) != static_cast<ssize_t>(caPass.size()))
+            {
+                ::close(caPwFileD);
+                LOG_WARN("Failed to write CA password to temporary file");
+                return false;
+            }
+            if (::close(caPwFileD) != 0)
+            {
+                LOG_WARN("Failed to close CA password file descriptor");
+                return false;
+            }
+
+            caPwFile = SecureTempFile(path);
+            stepCaInitArgs.emplace_back("--password-file");
+            stepCaInitArgs.emplace_back(path);
+        }
+        if (!provPass.empty())
+        {
+            auto [provPwFileD, path] = secure_temp_file("step");
+
+            if (::write(provPwFileD, provPass.data(), provPass.size()) != static_cast<ssize_t>(provPass.size()))
+            {
+                ::close(provPwFileD);
+                LOG_WARN("Failed to write provisioning password to temporary file");
+                return false;
+            }
+            if (::close(provPwFileD) != 0)
+            {
+                LOG_WARN("Failed to close provisioning password file descriptor");
+                return false;
+            }
+
+            provPwFile = SecureTempFile(path);
+            stepCaInitArgs.emplace_back("--provisioner-password-file");
+            stepCaInitArgs.emplace_back(path);
+        }
+        if (noDb)
+            stepCaInitArgs.emplace_back("--no-db");
+
+        std::string fullCommand = std::accumulate(stepCaInitArgs.begin(), stepCaInitArgs.end(), std::string{},
+                                                  [](std::string acc, std::string_view word) // ← by value
+                                                  {
+                                                      if (!acc.empty())
+                                                          acc.push_back(' ');
+                                                      acc.append(word);
+                                                      return acc; // NRVO/move – cheap
+                                                  });
+
+        LOG_DEBUG("Running step ca init: {}", fullCommand);
+
+        auto ret = CmdRunner::run(stepCaInitArgs);
+
+        lastStdout = ret.out;
+        lastStderr = ret.err;
+
+        if (ret.ec)
+        {
+            LOG_WARN("spawn failed: {}", ret.ec.message());
+            lastStderr = "spawn failed: " + ret.ec.message();
+            return false;
+        }
+
+        if (ret.exit_code != 0)
+        {
+            LOG_WARN("step exited {}", ret.exit_code);
+            lastStderr = "step exited with code " + std::to_string(ret.exit_code);
+            return false;
+        }
+
+        LOG_DEBUG("step ca init output:\n{}", ret.out);
+        LOG_DEBUG("step ca init error:\n{}", ret.err);
+
+        return true;
+    }
 };
 
 #endif
