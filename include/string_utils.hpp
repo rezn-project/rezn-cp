@@ -23,4 +23,16 @@ namespace util
     {
         return rtrim(ltrim(sv));
     }
+
+    [[nodiscard]] inline std::string join(std::vector<std::string> input, char glue = ' ') noexcept
+    {
+        return std::accumulate(input.begin(), input.end(), std::string{},
+                               [glue](std::string acc, std::string_view word)
+                               {
+                                   if (!acc.empty())
+                                       acc.push_back(glue);
+                                   acc.append(word);
+                                   return acc;
+                               });
+    }
 } // namespace util

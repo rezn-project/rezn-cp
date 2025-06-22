@@ -216,14 +216,7 @@ private:
         if (noDb)
             stepCaInitArgs.emplace_back("--no-db");
 
-        std::string fullCommand = std::accumulate(stepCaInitArgs.begin(), stepCaInitArgs.end(), std::string{},
-                                                  [](std::string acc, std::string_view word) // ← by value
-                                                  {
-                                                      if (!acc.empty())
-                                                          acc.push_back(' ');
-                                                      acc.append(word);
-                                                      return acc; // NRVO/move – cheap
-                                                  });
+        std::string fullCommand = util::join(stepCaInitArgs);
 
         LOG_DEBUG("Running step ca init: {}", fullCommand);
 
