@@ -66,6 +66,12 @@ set(REPROC_MULTITHREADED ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 add_subdirectory(${DEPS_DIR}/reproc)
 
+set(CLIP_ENABLE_IMAGE OFF CACHE BOOL "" FORCE)
+set(CLIP_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(CLIP_TESTS OFF CACHE BOOL "" FORCE)
+set(CLIP_INSTALL OFF CACHE BOOL "" FORCE)
+add_subdirectory(${DEPS_DIR}/clip)
+
 # ----------------------------------------------------------------------
 # Target
 # ----------------------------------------------------------------------
@@ -80,6 +86,7 @@ target_include_directories(rezn-cp PRIVATE
     ${DEPS_DIR}/imtui/third-party/imgui
     ${DEPS_DIR}/imtui/third-party/imgui/imgui
     ${DEPS_DIR}/imtui/third-party/imgui/imgui/misc/cpp
+    ${DEPS_DIR}/clip
 )
 
 target_link_libraries(rezn-cp
@@ -89,5 +96,6 @@ target_link_libraries(rezn-cp
     CURL::libcurl
     passgen-static
     reproc++
+    clip
 )
 
