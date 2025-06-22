@@ -24,15 +24,15 @@ namespace util
         return rtrim(ltrim(sv));
     }
 
-    [[nodiscard]] inline std::string join(std::vector<std::string> input, char glue = ' ') noexcept
+    [[nodiscard]] inline std::string join(const std::vector<std::string> &input, char glue = ' ')
     {
         return std::accumulate(input.begin(), input.end(), std::string{},
-                               [glue](std::string acc, std::string_view word)
+                               [glue](std::string &acc, std::string_view word)
                                {
                                    if (!acc.empty())
                                        acc.push_back(glue);
                                    acc.append(word);
-                                   return acc;
+                                   return std::move(acc);
                                });
     }
 } // namespace util
