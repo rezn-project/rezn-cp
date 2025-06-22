@@ -46,18 +46,29 @@ public:
         ImGui::Checkbox("Enable SSH CA", &enableSsh);
         ImGui::Checkbox("Disable DB", &noDb);
 
-        // Password fields with inline “Generate” buttons
-        ImGui::InputText("CA password", &caPass,
-                         ImGuiInputTextFlags_Password);
+        // --------
+
+        ImGui::InputText("CA password", &caPass);
+
         ImGui::SameLine();
         if (ImGui::Button("Generate##ca"))
             caPass = pg.generate(20);
 
-        ImGui::InputText("Provisioner password", &provPass,
-                         ImGuiInputTextFlags_Password);
+        ImGui::SameLine();
+        if (ImGui::Button("Copy##ca"))
+            ImGui::SetClipboardText(caPass.c_str());
+
+        // --------
+
+        ImGui::InputText("Provisioner password", &provPass);
+
         ImGui::SameLine();
         if (ImGui::Button("Generate##prov"))
             provPass = pg.generate(20);
+
+        ImGui::SameLine();
+        if (ImGui::Button("Copy##prov"))
+            ImGui::SetClipboardText(provPass.c_str());
 
         if (ImGui::Button("Run command"))
         {

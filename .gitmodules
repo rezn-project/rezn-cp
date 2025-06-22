@@ -10,3 +10,6 @@
 [submodule "deps/reproc"]
 	path = deps/reproc
 	url = https://github.com/DaanDeMeyer/reproc.git
+[submodule "deps/clip"]
+	path = deps/clip
+	url = https://github.com/dacap/clip.git
