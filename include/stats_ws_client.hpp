@@ -1,156 +1,179 @@
 #ifndef CP_REZN_WS_CLIENT_HPP
 #define CP_REZN_WS_CLIENT_HPP
 
+// C++ STL
 #include <string>
 #include <expected>
 #include <chrono>
 #include <format>
 #include <source_location>
-#include <unordered_map>
 
+// 3rd-party
+#include <nlohmann/json.hpp>
+#include <readerwriterqueue.h>
+
+// websocketclient-cpp
 #include "ws_client/ws_client.hpp"
 #include "ws_client/transport/builtin/TcpSocket.hpp"
 #include "ws_client/transport/builtin/OpenSslSocket.hpp"
 #include "ws_client/transport/builtin/DnsResolver.hpp"
 
-#include <nlohmann/json.hpp>
-#include "readerwriterqueue.h"
+// your DTOs
+#include "stats_model.hpp"
+#include "stats_json.hpp"
 
-using StatsMap = std::unordered_map<std::string, double>; // container-id → cpu_avg
+using namespace std::chrono_literals;
+namespace wsc = ws_client;
 
-// -----------------------------------------------------------------------------
-// Tiny logger that prints everything to stdout
-// -----------------------------------------------------------------------------
+// ──────────────────────────────────────────────────────────────
+// Console logger (drop-in for websocketclient Logger concept)
+// ──────────────────────────────────────────────────────────────
 struct WsLogger
 {
-    template <ws_client::LogLevel L, ws_client::LogTopic T>
+    template <wsc::LogLevel L, wsc::LogTopic T>
     bool is_enabled() const noexcept { return true; }
 
-    template <ws_client::LogLevel L, ws_client::LogTopic T>
+    template <wsc::LogLevel L, wsc::LogTopic T>
     void log(std::string_view msg,
              std::source_location loc = std::source_location::current()) noexcept
     {
         std::cout << std::format("{} {} {}:{} | {}\n",
-                                 ws_client::to_string(T),
-                                 ws_client::to_string(L),
-                                 ws_client::extract_log_file_name(loc.file_name()),
+                                 wsc::to_string(T),
+                                 wsc::to_string(L),
+                                 wsc::extract_log_file_name(loc.file_name()),
                                  loc.line(),
                                  msg);
     }
 };
 
-// -----------------------------------------------------------------------------
-// StatsWsClient  — one public method: run_once()
-// Reconnect logic lives in main(); run_once() exits on error/close.
-// -----------------------------------------------------------------------------
+// ──────────────────────────────────────────────────────────────
+// StatsWsClient – one-shot connect/consume; caller decides
+// whether to reconnect by calling run_once() again.
+// ──────────────────────────────────────────────────────────────
 class StatsWsClient
 {
 public:
-    StatsWsClient(const std::string &uri,
+    StatsWsClient(std::string uri,
                   moodycamel::ReaderWriterQueue<StatsMap> &q)
-        : uri_(uri), queue_(q) {}
+        : uri_(std::move(uri)), queue_(q) {}
 
-    /** Connect, pump until error/close, then return. */
-    std::expected<void, ws_client::WSError> run_once()
+    std::expected<void, wsc::WSError> run_once()
     {
-        using namespace ws_client;
-        using namespace std::chrono_literals;
+        WS_TRY(url, wsc::URL::parse(uri_));
 
-        WsLogger log;
+        // DNS
+        wsc::DnsResolver dns(&log_);
+        WS_TRY(r, dns.resolve(url->host(), url->port_str(), wsc::AddrType::ipv4));
+        wsc::AddressInfo &addr = (*r)[0];
 
-        // 1. Parse URL -------------------------------------------------------
-        WS_TRY(url, URL::parse(uri_));
+        // one shared read buffer
+        WS_TRY(buf, wsc::Buffer::create(4 * 1024, 1 * 1024 * 1024));
 
-        // 2. Resolve DNS -----------------------------------------------------
-        DnsResolver dns(&log);
-        WS_TRY(res, dns.resolve(url->host(), url->port_str(), AddrType::ipv4));
-        AddressInfo &addr = (*res)[0];
+        // decide transport by scheme prefix (cheap & cheerful)
+        const bool secure = uri_.rfind("wss://", 0) == 0;
 
-        // 3. TCP socket ------------------------------------------------------
-        auto tcp = TcpSocket(&log, std::move(addr));
-        WS_TRYV(tcp.init());
-        WS_TRYV(tcp.connect(2s));
-
-        // 4. (Optional) TLS --------------------------------------------------
-        std::unique_ptr<AbstractSocket> sock;
-        if (url->scheme() == "wss")
+        if (secure)
         {
-            OpenSslContext ctx(&log);
+            // TCP
+            wsc::TcpSocket<WsLogger> tcp(&log_, std::move(addr));
+            WS_TRYV(tcp.init());
+            WS_TRYV(tcp.connect(2s));
+
+            // TLS wrap
+            wsc::OpenSslContext ctx(&log_);
             WS_TRYV(ctx.init());
             WS_TRYV(ctx.set_default_verify_paths());
 
-            auto ssl = std::make_unique<OpenSslSocket>(&log, std::move(tcp),
-                                                       &ctx, url->host(), true);
-            WS_TRYV(ssl->init());
-            WS_TRYV(ssl->connect(2s));
-            sock = std::move(ssl);
+            wsc::OpenSslSocket<WsLogger> ssl(&log_, std::move(tcp), &ctx, url->host(), true);
+            WS_TRYV(ssl.init());
+            WS_TRYV(ssl.connect(2s));
+
+            // WebSocket client (three template params!)
+            wsc::WebSocketClient<WsLogger,
+                                 wsc::OpenSslSocket<WsLogger>,
+                                 wsc::DefaultMaskKeyGen>
+                client(&log_, std::move(ssl));
+
+            return pump_messages(*url, client, *buf);
         }
         else
         {
-            sock = std::make_unique<TcpSocket>(std::move(tcp)); // already connected
+            wsc::TcpSocket<WsLogger> tcp(&log_, std::move(addr));
+            WS_TRYV(tcp.init());
+            WS_TRYV(tcp.connect(2s));
+
+            wsc::WebSocketClient<WsLogger,
+                                 wsc::TcpSocket<WsLogger>,
+                                 wsc::DefaultMaskKeyGen>
+                client(&log_, std::move(tcp));
+
+            return pump_messages(*url, client, *buf);
         }
+    }
 
-        // 5. Handshake -------------------------------------------------------
-        WebSocketClient ws(&log, std::move(sock));
-        Handshake hs(&log, *url);
-        WS_TRYV(ws.handshake(hs, 5s));
+private:
+    // ------------ message loop (templated only on socket type) -------------
+    template <typename TSocket>
+    std::expected<void, wsc::WSError> pump_messages(
+        const wsc::URL &url,
+        wsc::WebSocketClient<WsLogger, TSocket, wsc::DefaultMaskKeyGen> &client,
+        wsc::Buffer &buf)
+    {
+        wsc::Handshake hs(&log_, url);
+        WS_TRYV(client.handshake(hs, 5s));
 
-        // 6. Buffer ----------------------------------------------------------
-        WS_TRY(buf, Buffer::create(4096, 1 * 1024 * 1024));
-
-        for (;;)
+        while (true)
         {
-            auto evt = ws.read_message(*buf, 65s);
+            auto evt = client.read_message(buf, 65s);
 
-            // ---- TEXT MESSAGE ---------------------------------------------
-            if (auto msg = std::get_if<Message>(&evt);
-                msg && msg->type() == MessageType::text)
+            // TEXT ----------------------------------------------------------
+            if (auto msg = std::get_if<wsc::Message>(&evt);
+                msg && msg->type == wsc::MessageType::text)
             {
                 StatsMap sm;
 
-                // parse with nlohmann::json
-                auto j = nlohmann::json::parse(msg->text(), nullptr, false);
+                std::string_view json_sv = msg->to_string_view();
+                auto j = nlohmann::json::parse(json_sv, nullptr, false);
+
                 if (!j.is_discarded())
                 {
-                    for (auto &[id, payload] : j.items())
+                    for (auto &[id, val] : j.items())
                     {
                         try
                         {
-                            double cpu = payload["stats"]["cpu_avg"].get<double>();
-                            sm.emplace(id, cpu);
+                            sm.emplace(id, val.get<TimestampedStats>());
                         }
                         catch (...)
-                        {
-                            log.log<LogLevel::W, LogTopic::User>(
-                                std::format("Malformed entry for id {}", id));
+                        { /* skip malformed */
                         }
                     }
                     queue_.enqueue(std::move(sm));
                 }
             }
-            // ---- PING/PONG -------------------------------------------------
-            else if (auto ping = std::get_if<PingFrame>(&evt))
+            // PING ----------------------------------------------------------
+            else if (auto ping = std::get_if<wsc::PingFrame>(&evt))
             {
-                ws.send_pong_frame(ping->payload_bytes());
+                client.send_pong_frame(ping->payload_bytes());
             }
-            // ---- CLOSE FRAME ----------------------------------------------
-            else if (auto close = std::get_if<CloseFrame>(&evt))
+            // CLOSE ---------------------------------------------------------
+            else if (auto close = std::get_if<wsc::CloseFrame>(&evt))
             {
-                ws.close(close_code::normal_closure);
+                client.close(wsc::close_code::normal_closure);
                 return {};
             }
-            // ---- ERROR -----------------------------------------------------
-            else if (auto err = std::get_if<WSError>(&evt))
+            // ERROR ---------------------------------------------------------
+            else if (auto err = std::get_if<wsc::WSError>(&evt))
             {
-                ws.close(err->close_with_code);
+                client.close(err->close_with_code);
                 return std::unexpected(*err);
             }
         }
     }
 
-private:
+    // members
     std::string uri_;
     moodycamel::ReaderWriterQueue<StatsMap> &queue_;
+    WsLogger log_;
 };
 
-#endif
+#endif // CP_REZN_WS_CLIENT_HPP

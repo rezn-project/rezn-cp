@@ -1,6 +1,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <thread>
 
 #include "imtui/imtui.h"
 #include "imgui/misc/cpp/imgui_stdlib.h"
@@ -29,7 +30,7 @@ int main()
     std::string sock_path = sock_env ? sock_env : "/tmp/reznledgr.sock";
 
     const char *stats_ws_uri_env = std::getenv("REZN_STATS_WS_URI");
-    std::string stats_ws_uri = stats_ws_uri_env ? stats_ws_uri_env : "http://localhost:4000/stats/ws";
+    std::string stats_ws_uri = stats_ws_uri_env ? stats_ws_uri_env : "ws://localhost:4000/stats/ws";
 
     std::unique_ptr<LedgerApiClient> api;
     try
@@ -46,6 +47,19 @@ int main()
 
     moodycamel::ReaderWriterQueue<StatsMap> q(1024);
     auto statsWsClient = std::make_unique<StatsWsClient>(stats_ws_uri, q);
+
+    // Start the WebSocket client in a separate thread
+    std::thread statsThread([&statsWsClient]()
+                            {
+    while (true) {
+        auto result = statsWsClient->run_once();
+        if (!result.has_value()) {
+           LOG_ERROR("WebSocket connection failed: {}", result.error().message);
+            // Add reconnection delay
+           std::this_thread::sleep_for(std::chrono::seconds(5));
+        }
+   } });
+    statsThread.detach();
 
     auto hostService = std::make_unique<HostService>(*api);
     auto hostsWindow = std::make_unique<HostsWindow>(*hostService);
