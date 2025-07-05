@@ -13,3 +13,15 @@
 [submodule "deps/clip"]
 	path = deps/clip
 	url = https://github.com/dacap/clip.git
+[submodule "deps/websocketpp"]
+	path = deps/websocketpp
+	url = https://github.com/zaphoyd/websocketpp.git
+[submodule "deps/asio"]
+	path = deps/asio
+	url = https://github.com/chriskohlhoff/asio.git
+[submodule "deps/websocketclient-cpp"]
+	path = deps/websocketclient-cpp
+	url = https://github.com/rbeeli/websocketclient-cpp.git
+[submodule "deps/readwriterqueue"]
+	path = deps/readwriterqueue
+	url = https://github.com/cameron314/readerwriterqueue.git

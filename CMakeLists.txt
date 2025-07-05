@@ -44,6 +44,8 @@ set(PROJECT_SOURCES
 find_package(Curses REQUIRED)
 find_package(CURL   REQUIRED)
 find_package(Threads REQUIRED)
+find_package(OpenSSL REQUIRED)
+find_package(ZLIB REQUIRED)
 
 set(BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 set(BUILD_BENCH OFF CACHE BOOL "" FORCE)
@@ -87,6 +89,8 @@ target_include_directories(rezn-cp PRIVATE
     ${DEPS_DIR}/imtui/third-party/imgui/imgui
     ${DEPS_DIR}/imtui/third-party/imgui/imgui/misc/cpp
     ${DEPS_DIR}/clip
+    ${DEPS_DIR}/websocketclient-cpp/include
+    ${DEPS_DIR}/readwriterqueue
 )
 
 target_link_libraries(rezn-cp
@@ -97,5 +101,8 @@ target_link_libraries(rezn-cp
     passgen-static
     reproc++
     clip
+    ZLIB::ZLIB 
+    OpenSSL::SSL
+    OpenSSL::Crypto
 )
 
