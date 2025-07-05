@@ -1,26 +1,24 @@
 #ifndef CP_REZN_WS_CLIENT_HPP
 #define CP_REZN_WS_CLIENT_HPP
 
-// C++ STL
 #include <string>
 #include <expected>
 #include <chrono>
 #include <format>
 #include <source_location>
 
-// 3rd-party
 #include <nlohmann/json.hpp>
 #include <readerwriterqueue.h>
 
-// websocketclient-cpp
 #include "ws_client/ws_client.hpp"
 #include "ws_client/transport/builtin/TcpSocket.hpp"
 #include "ws_client/transport/builtin/OpenSslSocket.hpp"
 #include "ws_client/transport/builtin/DnsResolver.hpp"
 
-// your DTOs
 #include "stats_model.hpp"
 #include "stats_json.hpp"
+
+#include "log.hpp"
 
 using namespace std::chrono_literals;
 namespace wsc = ws_client;
@@ -37,12 +35,14 @@ struct WsLogger
     void log(std::string_view msg,
              std::source_location loc = std::source_location::current()) noexcept
     {
-        std::cout << std::format("{} {} {}:{} | {}\n",
-                                 wsc::to_string(T),
-                                 wsc::to_string(L),
-                                 wsc::extract_log_file_name(loc.file_name()),
-                                 loc.line(),
-                                 msg);
+        // std::cout << std::format("{} {} {}:{} | {}\n",
+        //                          wsc::to_string(T),
+        //                          wsc::to_string(L),
+        //                          wsc::extract_log_file_name(loc.file_name()),
+        //                          loc.line(),
+        //                          msg);
+
+        LOG_DEBUG("{}", msg);
     }
 };
 
