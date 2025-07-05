@@ -175,7 +175,8 @@ private:
             "--dns", dnsName,
             "--address", addr,
             "--provisioner", provName,
-            "--deployment-type", "standalone"};
+            "--deployment-type", "standalone",
+            "--remote-management"};
 
         std::optional<SecureTempFile> caPwFile;
         std::optional<SecureTempFile> provPwFile;
