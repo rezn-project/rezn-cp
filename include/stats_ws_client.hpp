@@ -29,7 +29,7 @@ namespace wsc = ws_client;
 struct WsLogger
 {
     template <wsc::LogLevel L, wsc::LogTopic T>
-    bool is_enabled() const noexcept { return true; }
+    bool is_enabled() const noexcept { return false; }
 
     template <wsc::LogLevel L, wsc::LogTopic T>
     void log(std::string_view msg,
@@ -42,7 +42,7 @@ struct WsLogger
         //                          loc.line(),
         //                          msg);
 
-        LOG_DEBUG("{}", msg);
+        // LOG_DEBUG("{}", msg);
     }
 };
 

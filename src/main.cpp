@@ -19,6 +19,7 @@
 #include "log.hpp"
 #include "step_ca_init_window.hpp"
 #include "stats_ws_client.hpp"
+#include <stats_window.hpp>
 
 using json = nlohmann::json;
 
@@ -68,11 +69,14 @@ int main()
 
     auto logWindow = std::make_unique<LogWindow>();
 
+    auto statsWindow = std::make_unique<StatsWindow>(&q);
+
     auto tuiBackend = std::make_unique<TuiBackend>(true);
 
     bool showHostsNodesWindow = false;
     bool showStepCaInitWindow = false;
     bool showLogWindow = false;
+    bool showStatsWindow = false;
 
     while (true)
     {
@@ -103,6 +107,10 @@ int main()
                 {
                     showLogWindow = true;
                 }
+                if (ImGui::MenuItem("Stats"))
+                {
+                    showStatsWindow = true;
+                }
                 ImGui::EndMenu();
             }
             ImGui::EndMainMenuBar();
@@ -121,6 +129,11 @@ int main()
         if (showStepCaInitWindow)
         {
             stepCaInitWindow->draw(&showStepCaInitWindow);
+        }
+
+        if (showStatsWindow)
+        {
+            statsWindow->draw(&showStatsWindow);
         }
 
         tuiBackend->present();
