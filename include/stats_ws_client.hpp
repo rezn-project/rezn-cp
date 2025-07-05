@@ -144,7 +144,8 @@ private:
                             sm.emplace(id, val.get<TimestampedStats>());
                         }
                         catch (...)
-                        { /* skip malformed */
+                        {
+                            LOG_DEBUG("Failed to parse stats entry for container ID: {}", id);
                         }
                     }
                     queue_.enqueue(std::move(sm));
