@@ -87,6 +87,8 @@ target_include_directories(rezn-cp PRIVATE
     ${DEPS_DIR}/imtui/third-party/imgui/imgui
     ${DEPS_DIR}/imtui/third-party/imgui/imgui/misc/cpp
     ${DEPS_DIR}/clip
+    ${DEPS_DIR}/websocketclient-cpp/include
+    ${DEPS_DIR}/readwriterqueue
 )
 
 target_link_libraries(rezn-cp

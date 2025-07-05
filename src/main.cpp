@@ -7,6 +7,7 @@
 #include "imtui/imtui-impl-ncurses.h"
 
 #include <nlohmann/json.hpp>
+#include "readerwriterqueue.h"
 
 #include "tui_backend.hpp"
 #include "host_descriptor.hpp"
@@ -16,6 +17,7 @@
 #include "log_window.hpp"
 #include "log.hpp"
 #include "step_ca_init_window.hpp"
+#include "stats_ws_client.hpp"
 
 using json = nlohmann::json;
 
@@ -25,6 +27,9 @@ int main()
 {
     const char *sock_env = std::getenv("LEDGR_SOCKET_PATH");
     std::string sock_path = sock_env ? sock_env : "/tmp/reznledgr.sock";
+
+    const char *stats_ws_uri_env = std::getenv("REZN_STATS_WS_URI");
+    std::string stats_ws_uri = stats_ws_uri_env ? stats_ws_uri_env : "http://localhost:4000/stats/ws";
 
     std::unique_ptr<LedgerApiClient> api;
     try
@@ -38,6 +43,9 @@ int main()
     }
 
     LOG_INFO("Connected to daemon at {}", sock_path);
+
+    moodycamel::ReaderWriterQueue<StatsMap> q(1024);
+    auto statsWsClient = std::make_unique<StatsWsClient>(stats_ws_uri, q);
 
     auto hostService = std::make_unique<HostService>(*api);
     auto hostsWindow = std::make_unique<HostsWindow>(*hostService);
